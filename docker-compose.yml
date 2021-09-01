@@ -1,30 +1,33 @@
-version: '3.8'
-
+version: '3'
 services:
-  fastify_backend:
-    container_name: fastify_backend
-    image: turq84/fastify_backend:0.0.1
-    build:
-      context: .
-    ports:
-      - '3000:3000'
-    env_file: .env
-    depends_on:
-      - postgres
-
   postgres:
     container_name: postgres
-    image: postgres:latest
-    hostname: postgres
+    image: 'postgres:latest'
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    env_file: './env.sh'
+  nginx:
+    container_name: nginx
+    depends_on:
+      - api
+    restart: always
     build:
-      context: ./db
+      context: ./nginx
       dockerfile: Dockerfile
     ports:
-      - '5432:5432'
-    restart: always
-    env_file: .env
+      - '3050:80'
+  api:
+    container_name: api
+    build:
+      context: './server'
+      dockerfile: Dockerfile
     volumes:
-      - fastify_volume:/var/lib/postgres/data
-
-volumes:
-  fastify_volume: {}
+      - /app/node_modules
+      - ./server:/app
+    environment:
+      - PGUSER=${POSTGRES_USER}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - PGDATABASE=${POSTGRES_DB}
+      - PGHOST=postgres
+      - PGPORT=${POSTGRES_PORT}
+    env_file: './env.sh'
